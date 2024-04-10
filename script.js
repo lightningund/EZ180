@@ -11,18 +11,15 @@ function showImageURL(url) {
 	}
 }
 
-// Called
-function getURLInput(urlInput) {
-	if (urlInput.value == "") {
-		urlInput.value = urlInput.defaultValue; // reset to the default url input text value
-	} else {
-		document.getElementById("fileInput").value = ""; // clear the file input
-		showImageURL(urlInput.value); // show image
-		if (document.getElementById("auto-cb").checked) {
-			searchReady = false;
-			document.getElementById("searchForm").submit();
-		}
+function showImageFile(fileInput) {
+	let fr = new FileReader();
+
+	fr.onload = function() {
+		let dataURL = fr.result;
+		showImageURL(dataURL);
 	}
+
+	fr.readAsDataURL(fileInput.files[0]);
 }
 
 // Called
@@ -58,20 +55,23 @@ function checkImageFile(fileInput) {
 	}
 }
 
+// Called
+function getURLInput(urlInput) {
+	if (urlInput.value == "") {
+		urlInput.value = urlInput.defaultValue; // reset to the default url input text value
+	} else {
+		document.getElementById("fileInput").value = ""; // clear the file input
+		showImageURL(urlInput.value); // show image
+		if (document.getElementById("auto-cb").checked) {
+			searchReady = false;
+			document.getElementById("searchForm").submit();
+		}
+	}
+}
+
 function imageURLError() {
 	let imageDisplay = document.getElementById("imagePreview");
 	imageDisplay.innerHTML = "<span class=\"previewInfoText\">Image Preview Unavailable</span>";
-}
-
-function showImageFile(fileInput) {
-	let fr = new FileReader();
-
-	fr.onload = function() {
-		let dataURL = fr.result;
-		showImageURL(dataURL);
-	}
-
-	fr.readAsDataURL(fileInput.files[0]);
 }
 
 // Called
