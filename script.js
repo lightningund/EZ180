@@ -1,17 +1,15 @@
-// Vast majority of the following code is blatantly stolen from saucenao
-let searchReady = false;
-function isSearchReady() {
-	if (searchReady) {
-		searchReady = false;
-		return true;
+// Vast majority of the following code is inspired heavily by the input code from SauceNAO
+const quick_check_url = str => (/^((http|https|data):)/).test(str);
+
+function showImageURL(url) {
+	let imageDisplay = document.getElementById("imagePreview");
+
+	if (quick_check_url(url)) {
+		imageDisplay.innerHTML = `<div style="width: 100%; height: 100%;"><img src="${url}" onerror="imageURLError();"></div>`;
 	} else {
-		let imageDisplay = document.getElementById("imagePreview");
-		imageDisplay.innerHTML = "<span class='previewErrorText'>Please Select an Image First!</span>";
-		return false;
+		imageDisplay.innerHTML = "<span class=\"previewErrorText\">Invalid Image URL!</span>";
 	}
 }
-
-const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
 // Called
 function getURLInput(urlInput) {
@@ -36,7 +34,7 @@ function checkImageFile(fileInput) {
 	let typeRegex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
 	let fsizeMax = parseInt((localStorage.getItem("fsizeMax")));
 
-	if (typeof fsizeMax == "undefined" || fsizeMax == null) {
+	if (fsizeMax == undefined) {
 		fsizeMax = 15; // most common value
 	}
 
@@ -57,25 +55,6 @@ function checkImageFile(fileInput) {
 		let urlInput = document.getElementById("urlInput");
 		urlInput.value = urlInput.defaultValue; // reset to the default text value
 		showImageFile(fileInput); // display new image and activate search button
-		if (document.getElementById("auto-cb").checked) {
-			searchReady = false;
-			document.getElementById("searchForm").submit();
-		}
-	}
-}
-
-function showImageURL(url) {
-	let imageDisplay = document.getElementById("imagePreview");
-	let searchButton = document.getElementById("searchButton");
-
-	if (!quick_check_url(url)) {
-		imageDisplay.innerHTML = "<span class=\"previewErrorText\">Invalid Image URL!</span>";
-		searchButton.classList.remove("searchButtonActive"); // darken search button
-		searchReady = false;
-	} else {
-		imageDisplay.innerHTML = `<div style="width: 100%; height: 100%;"><img src="${url}" onerror="imageURLError();"></div>`;
-		searchButton.classList.add("searchButtonActive"); // activate search button
-		searchReady = true;
 	}
 }
 
