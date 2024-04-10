@@ -18,7 +18,7 @@
 
 		@fragment
 		fn fragment_main(frag_data: VertexOut) -> @location(0) vec4f {
-			return frag_data.position / vec4f(300, 150, 1, 1);
+			return frag_data.position / vec4f(500, 500, 1, 1);
 			//return textureSample(tex, our_sampler, frag_data.position.xy);
 		}
 	</script>
@@ -30,6 +30,6 @@
 	<br />
 	<input id="urlInput" type="text" name="url" placeholder="Paste Image URL" onfocus="clearValue(this)" onblur="getURLInput(this);" />
 	<br />
-	<canvas id="smooshed"></canvas>
+	<canvas id="smooshed" width="500", height="500"></canvas>
 </body>
 </html>
