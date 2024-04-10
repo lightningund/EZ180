@@ -1,3 +1,13 @@
+async function initGPU() {
+	if (!navigator.gpu) throw Error("WebGPU not supported");
+
+	const adapter = await navigator.gpu.requestAdapter();
+	if (!adapter) throw Error("Couldn't request WebGPU Adapter");
+
+	const device = await adapter.requestDevice();
+	if (!device) throw Error("Couldn't request WebGPU Device");
+}
+
 // Vast majority of the following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
