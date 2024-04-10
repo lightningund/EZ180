@@ -4,6 +4,8 @@
 	<script src="script.js"></script>
 </head>
 <body>
-
+	<input id="fileInput" type="file" name="file" onchange="checkImageFile(this);" title="Browse to select an image to search with">
+	<br />
+	<input id="urlInput" type="text" name="url" placeholder="Paste Image URL" onfocus="clearValue(this)" onblur="getURLInput(this);">
 </body>
 </html>
