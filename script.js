@@ -1,3 +1,5 @@
+const shaders = document.getElementById("shaders").textContent;
+
 async function initGPU() {
 	if (!navigator.gpu) throw Error("WebGPU not supported");
 
