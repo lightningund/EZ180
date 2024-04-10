@@ -3,13 +3,16 @@ const shaders = document.getElementById("shaders").textContent;
 const canv = document.getElementById("smooshed");
 const ctxt = canv.getContext("webgpu");
 
+let adapter;
+let device;
+
 async function initGPU() {
 	if (!navigator.gpu) throw Error("WebGPU not supported");
 
-	const adapter = await navigator.gpu.requestAdapter();
+	adapter = await navigator.gpu.requestAdapter();
 	if (!adapter) throw Error("Couldn't request WebGPU Adapter");
 
-	const device = await adapter.requestDevice();
+	device = await adapter.requestDevice();
 	if (!device) throw Error("Couldn't request WebGPU Device");
 
 	const shader_mod = device.createShaderModule({ code: shaders });
@@ -93,17 +96,49 @@ async function initGPU() {
 
 initGPU();
 
-// Vast majority of the following code is inspired heavily by the input code from SauceNAO
+// The following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
-function showImageURL(url) {
-	let imageDisplay = document.getElementById("imagePreview");
+function url_to_data(url) {
+	return new Promise((res, rej) => {
+		const img = document.createElement("img");
 
-	if (quick_check_url(url)) {
-		imageDisplay.innerHTML = `<div style="width: 100%; height: 100%;"><img src="${url}" onerror="imageURLError();"></div>`;
-	} else {
-		imageDisplay.innerHTML = "<span class=\"previewErrorText\">Invalid Image URL!</span>";
-	}
+		img.onload = function () {
+			console.log(this.width, this.height);
+			const canv = document.createElement("canvas");
+			canv.width = this.width;
+			canv.height = this.height;
+			const local_ctxt = canv.getContext("2d");
+			local_ctxt.drawImage(img, 0, 0);
+			document.body.appendChild(canv);
+
+			res(local_ctxt.getImageData(0, 0, this.width, this.height));
+		}
+
+		img.src = url;
+	});
+}
+
+async function showImageURL(url) {
+	//console.log(url);
+
+	if (!quick_check_url(url)) throw Error("Invalid Image");
+
+	const img_dat = await url_to_data(url);
+	console.log(img_dat);
+
+	const texture = device.createTexture({
+		size: [img_dat.width, img_dat.height],
+		format: navigator.gpu.getPreferredCanvasFormat(),
+		usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+	});
+
+	device.queue.writeTexture(
+		{ texture },
+		img_dat.data,
+		{ bytesPerRow: img_dat.width * 4 },
+		{ width: img_dat.width, height: img_dat.height }
+	);
 }
 
 function showImageFile(fileInput) {
