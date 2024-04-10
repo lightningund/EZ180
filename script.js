@@ -1,5 +1,8 @@
 const shaders = document.getElementById("shaders").textContent;
 
+const canv = document.getElementById("smooshed");
+const ctxt = canv.getContext("webgpu");
+
 async function initGPU() {
 	if (!navigator.gpu) throw Error("WebGPU not supported");
 
@@ -8,7 +11,87 @@ async function initGPU() {
 
 	const device = await adapter.requestDevice();
 	if (!device) throw Error("Couldn't request WebGPU Device");
+
+	const shader_mod = device.createShaderModule({ code: shaders });
+
+	ctxt.configure({
+		device: device,
+		format: navigator.gpu.getPreferredCanvasFormat(),
+		alphaMode: "premultiplied"
+	});
+
+	const verts = new Float32Array([
+		0, 0, 0, 0,
+		0, 1, 0, 0,
+		1, 1, 0, 0,
+		1, 0, 0, 0
+	]);
+
+	const vertex_buffer = device.createBuffer({
+		size: verts.byteLength,
+		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+	});
+
+	device.queue.writeBuffer(vertex_buffer, 0, verts, 0, verts.length);
+
+	const vertex_buffers = [
+		{
+			attributes: [
+				{
+					shaderLocation: 0, // position
+					offset: 0,
+					format: "float32x4"
+				}
+			],
+			arrayStride: 16,
+			stepMode: "vertex"
+		}
+	];
+
+	const pipeline_desc = {
+		vertex: {
+			module: shader_mod,
+			entryPoint: "vertex_main",
+			buffers: vertex_buffers
+		},
+		fragment: {
+			module: shader_mod,
+			entryPoint: "fragment_main",
+			targets: [
+				{ format: navigator.gpu.getPreferredCanvasFormat() }
+			]
+		},
+		primitive: { topology: "triangle-strip" },
+		layout: "auto"
+	};
+
+	const render_pipeline = device.createRenderPipeline(pipeline_desc);
+
+	const cmd_encoder = device.createCommandEncoder();
+
+	const render_pass_desc = {
+		colorAttachments: [
+			{
+				clearValue: { r: 0, g: 0.5, b: 1, a: 1 },
+				loadOp: "clear",
+				storeOp: "store",
+				view: ctxt.getCurrentTexture().createView()
+			}
+		]
+	};
+
+	const pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
+
+	pass_enc.setPipeline(render_pipeline);
+	pass_enc.setVertexBuffer(0, vertex_buffer);
+	pass_enc.draw(3);
+
+	pass_enc.end();
+
+	device.queue.submit([cmd_encoder.finish()]);
 }
+
+initGPU();
 
 // Vast majority of the following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
