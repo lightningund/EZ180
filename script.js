@@ -1,4 +1,6 @@
+/** @type {HTMLCanvasElement} */
 const canv = document.getElementById("smooshed");
+/** @type {RenderingContext} */
 const ctxt = canv.getContext("webgpu");
 
 let adapter;
@@ -47,12 +49,12 @@ const url_to_data = (url) =>
 
 		img.onload = function () {
 			console.log(this.width, this.height);
-			const canv = document.createElement("canvas");
-			canv.width = this.width;
-			canv.height = this.height;
-			const local_ctxt = canv.getContext("2d");
+			const local_canv = document.createElement("canvas");
+			local_canv.width = this.width;
+			local_canv.height = this.height;
+			const local_ctxt = local_canv.getContext("2d");
 			local_ctxt.drawImage(img, 0, 0);
-			document.body.appendChild(canv);
+			document.body.appendChild(local_canv);
 
 			res(local_ctxt.getImageData(0, 0, this.width, this.height));
 		}
@@ -170,7 +172,7 @@ async function showImageURL(url) {
 	const uniform_vals = new Float32Array([
 		(img_dat.height / img_dat.width), // Ratio
 		140 * Math.PI / 180, // HFoV
-		500, 500 // Canvas width and height
+		canv.width, canv.height // Canvas width and height
 	]);
 
 	const bind_group2 = device.createBindGroup({
