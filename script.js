@@ -1,35 +1,26 @@
+// Testing for and setting up WebGPU
+if (!navigator.gpu) throw Error("WebGPU not supported");
+const adapter = await navigator.gpu.requestAdapter();
+if (!adapter) throw Error("Couldn't request WebGPU Adapter");
+const device = await adapter.requestDevice();
+if (!device) throw Error("Couldn't request WebGPU Device");
+
 /** @type {HTMLCanvasElement} */
 const canv = document.getElementById("smooshed");
 /** @type {RenderingContext} */
 const ctxt = canv.getContext("webgpu");
 
-let adapter;
-let device;
+// Tell the canvas context about it
+ctxt.configure({
+	device: device,
+	format: navigator.gpu.getPreferredCanvasFormat(),
+	alphaMode: "premultiplied"
+});
+
+file_input.onchange = function() { checkImageFile(this); }
+
 let render_pipeline;
 let cmd_encoder;
-
-async function init_gpu() {
-	// Test if there is WebGPU at all
-	if (!navigator.gpu) throw Error("WebGPU not supported");
-
-	// Get the device adapter
-	adapter = await navigator.gpu.requestAdapter();
-	if (!adapter) throw Error("Couldn't request WebGPU Adapter");
-
-	// Get the device
-	/** @type {GPUDevice} */
-	device = await adapter.requestDevice();
-	if (!device) throw Error("Couldn't request WebGPU Device");
-
-	// Tell the canvas context about it
-	ctxt.configure({
-		device: device,
-		format: navigator.gpu.getPreferredCanvasFormat(),
-		alphaMode: "premultiplied"
-	});
-}
-
-init_gpu();
 
 function smoosh_image(img_dat) {
 
