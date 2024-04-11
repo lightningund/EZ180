@@ -51,8 +51,6 @@ const ctxt = canv.getContext("webgpu");
 // Tell the canvas context about it
 ctxt.configure({ device, format });
 
-file_input.onchange = function() { checkImageFile(this); }
-
 // The following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
@@ -164,83 +162,39 @@ function showImageFile(fileInput) {
 	fr.readAsDataURL(fileInput.files[0]);
 }
 
-// Called
-function checkImageFile(fileInput) {
-	let imageDisplay = document.getElementById("imagePreview");
-	let searchButton = document.getElementById("searchButton");
-	let fileMB = fileInput.files[0].size / 1024 / 1024;
-	let fileName = fileInput.value.trim().toLowerCase();
-	let typeRegex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
-	let fsizeMax = parseInt((localStorage.getItem("fsizeMax")));
+file_input.onchange = function() { check_img_file(this); }
 
-	if (fsizeMax == undefined) {
-		fsizeMax = 15; // most common value
-	}
+function check_img_file(file_input_elem) {
+	let img_display = document.getElementById("imagePreview");
+	let search_button = document.getElementById("searchButton");
+	let file_MB = file_input_elem.files[0].size / 1024 / 1024;
+	let filename = file_input_elem.value.trim().toLowerCase();
+	let type_regex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
+	let max_filesize = parseInt((localStorage.getItem("fsizeMax"))) | 15; // Default to 15
 
-	if (fileMB > fsizeMax) {
+	if (file_MB > max_filesize) {
 		// too big
-		imageDisplay.innerHTML = "<span class='previewErrorText'>Image Too Large!</span>";
-		fileInput.value= ''; // clear file input
-		searchButton.classList.remove("searchButtonActive"); // darken search button
+		img_display.innerHTML = "<span class='previewErrorText'>Image Too Large!</span>";
+		file_input_elem.value = ""; // clear file input
+		search_button.classList.remove("searchButtonActive"); // darken search button
 		searchReady = false;
-	} else if (!(typeRegex.test(fileName))) {
+	} else if (!(type_regex.test(filename))) {
 		// bad filetype - should pull type list from db
-		imageDisplay.innerHTML = "<span class='previewErrorText'>Image Type Not Supported!</span>";
-		fileInput.value= ''; // clear file input
-		searchButton.classList.remove("searchButtonActive"); // darken search button
+		img_display.innerHTML = "<span class='previewErrorText'>Image Type Not Supported!</span>";
+		file_input_elem.value = ""; // clear file input
+		search_button.classList.remove("searchButtonActive"); // darken search button
 		searchReady = false;
 	} else {
 		// good - clear the url input and submit if auto
-		let urlInput = document.getElementById("urlInput");
-		urlInput.value = urlInput.defaultValue; // reset to the default text value
-		showImageFile(fileInput); // display new image and activate search button
-	}
-}
-
-// Called
-function getURLInput(urlInput) {
-	if (urlInput.value == "") {
-		urlInput.value = urlInput.defaultValue; // reset to the default url input text value
-	} else {
-		document.getElementById("fileInput").value = ""; // clear the file input
-		showImageURL(urlInput.value); // show image
-		if (document.getElementById("auto-cb").checked) {
-			searchReady = false;
-			document.getElementById("searchForm").submit();
-		}
-	}
-}
-
-function imageURLError() {
-	let imageDisplay = document.getElementById("imagePreview");
-	imageDisplay.innerHTML = "<span class=\"previewInfoText\">Image Preview Unavailable</span>";
-}
-
-// Called
-function clearValue(elem) {
-	if (elem.value == elem.defaultValue) {
-		elem.value = "";
+		showImageFile(file_input_elem); // display new image and activate search button
 	}
 }
 
 document.onpaste = function(event) {
-	urlInput = document.getElementById("urlInput");
+	event.preventDefault();
+	let clipboard_data = (event.clipboardData || event.originalEvent.clipboardData);
+	if (clipboard_data.files[0] == undefined) return;
 
-	if (event.target == urlInput) {
-		// don't interfere with paste to url box - allows ios to paste image links properly
-		// give some time for paste to finish normally before checking
-		setTimeout(function() { getURLInput(urlInput); }, 4);
-		return;
-	} else {
-		event.preventDefault();
-		clipboardData = (event.clipboardData || event.originalEvent.clipboardData);
-		if (typeof clipboardData.files[0] == "undefined") {
-			urlInput.value = clipboardData.getData('Text');
-			getURLInput(urlInput);
-		} else {
-			fileInput = document.getElementById("fileInput");
-			fileInput.files = clipboardData.files;
-			checkImageFile(fileInput);
-		}
-	}
+	file_input.files = clipboard_data.files;
+	check_img_file(file_input);
 }
