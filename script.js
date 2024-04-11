@@ -145,7 +145,7 @@ const file_to_url = (file) => new Promise((res, rej) => {
 	fr.readAsDataURL(file);
 });
 
-async function smoosh_file(file) {
+async function smoosh_img_file(file) {
 	const url = await file_to_url(file);
 	if (!quick_check_url(url)) throw Error("Invalid Image");
 
@@ -165,39 +165,8 @@ async function smoosh_file(file) {
 	frame.close();
 }
 
-file_input.onchange = function() { check_img_file(this); }
-
-function check_img_file(file_input_elem) {
-	const file_MB = file_input_elem.files[0].size / 1024 / 1024;
-	const filename = file_input_elem.value.trim().toLowerCase();
-	const type_regex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
-	const max_filesize = parseInt((localStorage.getItem("fsizeMax"))) | 15; // Default to 15
-
-	if (file_MB > max_filesize) {
-		// too big
-		alert("File Too Big");
-		file_input_elem.value = ""; // clear file input
-	} else if (!(type_regex.test(filename))) {
-		// bad filetype
-		alert("Bad File Type");
-		file_input_elem.value = ""; // clear file input
-	} else {
-		// all good
-		smoosh_file(file_input_elem.files[0]);
-	}
-}
-
-document.onpaste = function(event) {
-	event.preventDefault();
-	let clipboard_data = (event.clipboardData || event.originalEvent.clipboardData);
-	if (clipboard_data.files[0] == undefined) return;
-
-	file_input.files = clipboard_data.files;
-	check_img_file(file_input);
-}
-
-video_input.onchange = async function() {
-	const url = await file_to_url(this.files[0]);
+async function smoosh_vid_file(file) {
+	const url = await file_to_url(file);
 	const vid = document.createElement("video");
 
 	vid.src = url;
@@ -215,3 +184,46 @@ video_input.onchange = async function() {
 		vid.requestVideoFrameCallback(render);
 	})();
 }
+
+file_input.onchange = function() { check_file(this); }
+
+function check_file(file_input_elem) {
+	const filename = file_input_elem.value.trim().toLowerCase();
+	const img_types = /\.(png|jpe?g|gif|bmp|webp)$/;
+	const vid_types = /\.(mp4|webm|ogg)$/;
+
+	if (img_types.test(filename)) {
+		smoosh_img_file(file_input_elem.files[0]);
+	} else if (vid_types.test(filename)) {
+		smoosh_vid_file(file_input_elem.files[0]);
+	}
+}
+
+document.onpaste = function(event) {
+	event.preventDefault();
+	let clipboard_data = (event.clipboardData || event.originalEvent.clipboardData);
+	if (clipboard_data.files[0] == undefined) return;
+
+	file_input.files = clipboard_data.files;
+	check_file(file_input);
+}
+
+// video_input.onchange = async function() {
+// 	const url = await file_to_url(this.files[0]);
+// 	const vid = document.createElement("video");
+
+// 	vid.src = url;
+// 	vid.controls = true;
+// 	vid.width = 500;
+
+// 	document.body.appendChild(vid);
+
+// 	await vid.play();
+
+// 	(function render() {
+// 		const frame = new VideoFrame(vid);
+// 		smoosh(frame);
+// 		frame.close();
+// 		vid.requestVideoFrameCallback(render);
+// 	})();
+// }
