@@ -51,7 +51,6 @@ const ctxt = canv.getContext("webgpu");
 // Tell the canvas context about it
 ctxt.configure({ device, format });
 
-// The following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
 function smoosh(img_dat) {
@@ -142,7 +141,11 @@ const url_to_data = (url) =>
 		img.src = url;
 	});
 
-async function showImageURL(url) {
+/**
+ * Takes an image as base64 encoded url and passes it onto the smoosh
+ * @param {*} url
+ */
+async function show_img_url(url) {
 	if (!quick_check_url(url)) throw Error("Invalid Image");
 
 	const img_dat = await url_to_data(url);
@@ -151,42 +154,54 @@ async function showImageURL(url) {
 	smoosh(img_dat);
 }
 
-function showImageFile(fileInput) {
+function show_img_file(fileInput) {
 	let fr = new FileReader();
 
 	fr.onload = function() {
 		let dataURL = fr.result;
-		showImageURL(dataURL);
+		show_img_url(dataURL);
 	}
 
 	fr.readAsDataURL(fileInput.files[0]);
 }
 
+const file_to_url = (file) => new Promise((res, rej) => {
+	let fr = new FileReader();
+
+	fr.onload = function() { res(fr.result); }
+
+	fr.readAsDataURL(file);
+});
+
+async function smoosh_file(file) {
+	const url = await file_to_url(file);
+	if (!quick_check_url(url)) throw Error("Invalid Image");
+
+	const img_dat = await url_to_data(url);
+	console.log(img_dat);
+
+	smoosh(img_dat);
+}
+
 file_input.onchange = function() { check_img_file(this); }
 
 function check_img_file(file_input_elem) {
-	let img_display = document.getElementById("imagePreview");
-	let search_button = document.getElementById("searchButton");
-	let file_MB = file_input_elem.files[0].size / 1024 / 1024;
-	let filename = file_input_elem.value.trim().toLowerCase();
-	let type_regex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
-	let max_filesize = parseInt((localStorage.getItem("fsizeMax"))) | 15; // Default to 15
+	const file_MB = file_input_elem.files[0].size / 1024 / 1024;
+	const filename = file_input_elem.value.trim().toLowerCase();
+	const type_regex = new RegExp("\.(png|jpe?g|gif|bmp|webp)$");
+	const max_filesize = parseInt((localStorage.getItem("fsizeMax"))) | 15; // Default to 15
 
 	if (file_MB > max_filesize) {
 		// too big
-		img_display.innerHTML = "<span class='previewErrorText'>Image Too Large!</span>";
+		alert("File Too Big");
 		file_input_elem.value = ""; // clear file input
-		search_button.classList.remove("searchButtonActive"); // darken search button
-		searchReady = false;
 	} else if (!(type_regex.test(filename))) {
-		// bad filetype - should pull type list from db
-		img_display.innerHTML = "<span class='previewErrorText'>Image Type Not Supported!</span>";
+		// bad filetype
+		alert("Bad File Type");
 		file_input_elem.value = ""; // clear file input
-		search_button.classList.remove("searchButtonActive"); // darken search button
-		searchReady = false;
 	} else {
-		// good - clear the url input and submit if auto
-		showImageFile(file_input_elem); // display new image and activate search button
+		// all good
+		smoosh_file(file_input_elem.files[0]);
 	}
 }
 
