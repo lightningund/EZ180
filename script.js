@@ -5,6 +5,8 @@
 // Figure out a better way to save the canvas
 // Figure out a way to save an entire video
 
+const W_LIM = 500;
+
 // Testing for and setting up WebGPU
 if (!navigator.gpu) throw Error("WebGPU not supported");
 const adapter = await navigator.gpu.requestAdapter();
@@ -125,6 +127,7 @@ const url_to_data = (url) => new Promise((res, rej) => {
 		const local_canv = document.createElement("canvas");
 		local_canv.width = this.width;
 		local_canv.height = this.height;
+		local_canv.style.width = W_LIM;
 		const local_ctxt = local_canv.getContext("2d");
 		local_ctxt.drawImage(img, 0, 0);
 		document.body.appendChild(local_canv);
@@ -171,7 +174,7 @@ async function smoosh_vid_file(file) {
 
 	vid.src = url;
 	vid.controls = true;
-	vid.width = 500;
+	vid.style.width = W_LIM;
 
 	document.body.appendChild(vid);
 
