@@ -5,17 +5,21 @@ let adapter;
 let device;
 let render_pipeline;
 let cmd_encoder;
-let pass_enc;
 
-async function initGPU() {
+async function init_gpu() {
+	// Test if there is WebGPU at all
 	if (!navigator.gpu) throw Error("WebGPU not supported");
 
+	// Get the device adapter
 	adapter = await navigator.gpu.requestAdapter();
 	if (!adapter) throw Error("Couldn't request WebGPU Adapter");
 
+	// Get the device
+	/** @type {GPUDevice} */
 	device = await adapter.requestDevice();
 	if (!device) throw Error("Couldn't request WebGPU Device");
 
+	// Tell the canvas context about it
 	ctxt.configure({
 		device: device,
 		format: navigator.gpu.getPreferredCanvasFormat(),
@@ -23,13 +27,22 @@ async function initGPU() {
 	});
 }
 
-initGPU();
+init_gpu();
+
+function smoosh_image(img_dat) {
+
+}
 
 // The following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
-function url_to_data(url) {
-	return new Promise((res, rej) => {
+/**
+ * Takes an image as a data URL and converts it into image data
+ * @param {string} url
+ * @returns {Promise<ImageData>}
+ */
+const url_to_data = (url) =>
+	new Promise((res, rej) => {
 		const img = document.createElement("img");
 
 		img.onload = function () {
@@ -46,7 +59,6 @@ function url_to_data(url) {
 
 		img.src = url;
 	});
-}
 
 async function showImageURL(url) {
 	//console.log(url);
@@ -56,6 +68,9 @@ async function showImageURL(url) {
 	const img_dat = await url_to_data(url);
 	console.log(img_dat);
 
+	//---------------
+	// Shader setup
+	//---------------
 	const shader_mod = device.createShaderModule({ code: shaders });
 
 	const verts = new Float32Array([
@@ -120,6 +135,24 @@ async function showImageURL(url) {
 		]
 	};
 
+	const sampler = device.createSampler();
+
+	const uniform_buffer = device.createBuffer({
+		size: 4 * (1 + 1 + 2),
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	});
+
+	const bind_group = device.createBindGroup({
+		layout: render_pipeline.getBindGroupLayout(0),
+		entries: [
+			{ binding: 0, resource: sampler },
+			{ binding: 1, resource: { buffer: uniform_buffer } }
+		]
+	});
+
+	//-------------------
+	// Using actual data
+	//-------------------
 	const texture = device.createTexture({
 		size: [img_dat.width, img_dat.height],
 		format: "rgba8unorm",
@@ -133,13 +166,6 @@ async function showImageURL(url) {
 		{ width: img_dat.width, height: img_dat.height }
 	);
 
-	const sampler = device.createSampler();
-
-	const uniform_buffer = device.createBuffer({
-		size: 4 * (1 + 1 + 2),
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
-
 	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
 		(img_dat.height / img_dat.width), // Ratio
@@ -147,19 +173,21 @@ async function showImageURL(url) {
 		500, 500 // Canvas width and height
 	]);
 
-	const bind_group = device.createBindGroup({
-		layout: render_pipeline.getBindGroupLayout(0),
+	const bind_group2 = device.createBindGroup({
+		layout: render_pipeline.getBindGroupLayout(1),
 		entries: [
-			{ binding: 0, resource: sampler },
-			{ binding: 1, resource: texture.createView() },
-			{ binding: 2, resource: { buffer: uniform_buffer } }
+			{ binding: 0, resource: texture.createView() },
 		]
 	});
 
-	pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
+	//---------
+	// Drawing
+	//---------
+	let pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
 
 	pass_enc.setPipeline(render_pipeline);
 	pass_enc.setBindGroup(0, bind_group);
+	pass_enc.setBindGroup(1, bind_group2);
 	pass_enc.setVertexBuffer(0, vertex_buffer);
 
 	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
