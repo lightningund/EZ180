@@ -6,8 +6,16 @@
 
 		fn radians(x: f32) -> f32 { return x * PI / 180.0; }
 
+		struct Settings {
+			ratio: f32,
+			hfov: f32,
+			canv: vec2f
+		};
+
 		@group(0) @binding(0) var our_sampler: sampler;
 		@group(0) @binding(1) var tex: texture_2d<f32>;
+
+		@group(0) @binding(2) var<uniform> settings: Settings;
 
 		const RATIO: f32 = 564.0 / 1024.0;
 
@@ -45,12 +53,12 @@
 		@fragment
 		fn fragment_main(frag_data: VertexOut) -> @location(0) vec4f {
 			// Normalized pixel coordinates (from 0 to 1)
-			var uv = frag_data.position.xy / vec2f(500, 500);
+			var uv = frag_data.position.xy / settings.canv;
 
-			var width = 2.0 * sin(hfov / 2.0);
-			var height = width * RATIO;
+			var width = 2.0 * sin(settings.hfov / 2.0);
+			var height = width * settings.ratio;
 
-			var h = width / tan(hfov / 2.0) / 2.0;
+			var h = width / tan(settings.hfov / 2.0) / 2.0;
 
 			var lat = map(uv.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
 			var lon = map(uv.x, 0.0, 1.0, -PI / 2.0, PI / 2.0);

@@ -72,7 +72,7 @@ async function showImageURL(url) {
 		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
 	});
 
-	device.queue.writeBuffer(vertex_buffer, 0, verts, 0, verts.length);
+	device.queue.writeBuffer(vertex_buffer, 0, verts);
 
 	const vertex_buffers = [
 		{
@@ -137,11 +137,24 @@ async function showImageURL(url) {
 
 	const sampler = device.createSampler();
 
+	const uniform_buffer = device.createBuffer({
+		size: 4 * (1 + 1 + 2),
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	});
+
+	// Figure out a way to adjust HFoV outside the code
+	const uniform_vals = new Float32Array([
+		(img_dat.height / img_dat.width), // Ratio
+		140 * Math.PI / 180, // HFoV
+		500, 500 // Canvas width and height
+	]);
+
 	const bind_group = device.createBindGroup({
 		layout: render_pipeline.getBindGroupLayout(0),
 		entries: [
 			{ binding: 0, resource: sampler },
-			{ binding: 1, resource: texture.createView() }
+			{ binding: 1, resource: texture.createView() },
+			{ binding: 2, resource: { buffer: uniform_buffer } }
 		]
 	});
 
@@ -150,6 +163,9 @@ async function showImageURL(url) {
 	pass_enc.setPipeline(render_pipeline);
 	pass_enc.setBindGroup(0, bind_group);
 	pass_enc.setVertexBuffer(0, vertex_buffer);
+
+	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
+
 	pass_enc.draw(4);
 
 	pass_enc.end();
