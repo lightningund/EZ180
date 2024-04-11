@@ -207,23 +207,3 @@ document.onpaste = function(event) {
 	file_input.files = clipboard_data.files;
 	check_file(file_input);
 }
-
-// video_input.onchange = async function() {
-// 	const url = await file_to_url(this.files[0]);
-// 	const vid = document.createElement("video");
-
-// 	vid.src = url;
-// 	vid.controls = true;
-// 	vid.width = 500;
-
-// 	document.body.appendChild(vid);
-
-// 	await vid.play();
-
-// 	(function render() {
-// 		const frame = new VideoFrame(vid);
-// 		smoosh(frame);
-// 		frame.close();
-// 		vid.requestVideoFrameCallback(render);
-// 	})();
-// }
