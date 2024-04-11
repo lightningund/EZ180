@@ -64,9 +64,9 @@ fn fragment_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 	var sampled = textureSample(tex, our_sampler, vec2f(x, y));
 
 	if (within(plane.x, width / 2.0) && within(plane.y, height / 2.0)) {
-		return sampled;
+		return vec4f(sampled.xyz, 1);
 	} else {
-		return vec4f(0, 0, 0, 0);
+		return vec4f(0, 0, 0, 1);
 	}
 }
 `;
