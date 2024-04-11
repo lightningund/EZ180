@@ -50,19 +50,23 @@ const ctxt = canv.getContext("webgpu");
 
 ctxt.configure({ device, format });
 
-function smoosh(img_dat) {
-	const texture = device.createTexture({
-		size: [img_dat.width, img_dat.height],
-		format: "rgba8unorm",
-		usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-	});
+async function smoosh(img_dat) {
+	// const texture = device.createTexture({
+	// 	size: [img_dat.width, img_dat.height],
+	// 	format: "rgba8unorm",
+	// 	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+	// });
 
-	device.queue.writeTexture(
-		{ texture },
-		img_dat.data,
-		{ bytesPerRow: img_dat.width * 4 },
-		{ width: img_dat.width, height: img_dat.height }
-	);
+	// device.queue.writeTexture(
+	// 	{ texture },
+	// 	img_dat.data,
+	// 	{ bytesPerRow: img_dat.width * 4 },
+	// 	{ width: img_dat.width, height: img_dat.height }
+	// );
+
+	const texture = device.importExternalTexture({
+		source: new VideoFrame(await createImageBitmap(img_dat), { timestamp: 0 })
+	});
 
 	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
@@ -74,7 +78,7 @@ function smoosh(img_dat) {
 	const bind_group2 = device.createBindGroup({
 		layout: render_pipeline.getBindGroupLayout(1),
 		entries: [
-			{ binding: 0, resource: texture.createView() },
+			{ binding: 0, resource: texture },
 		]
 	});
 

@@ -13,7 +13,7 @@ struct Settings {
 @group(0) @binding(1) var<uniform> settings: Settings;
 
 // The texture is in a different group because the other two can be bound ahead of time
-@group(1) @binding(0) var tex: texture_2d<f32>;
+@group(1) @binding(0) var tex: texture_external;
 
 const RATIO: f32 = 564.0 / 1024.0;
 
@@ -63,7 +63,7 @@ fn fragment_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 
 	var x = map(plane.x, -width / 2.0, width / 2.0, 0.0, 1.0);
 	var y = map(plane.y, -height / 2.0, height / 2.0, 0.0, 1.0);
-	var sampled = textureSample(tex, our_sampler, vec2f(x, y));
+	var sampled = textureSampleBaseClampToEdge(tex, our_sampler, vec2f(x, y));
 
 	if (within(plane.x, width / 2.0) && within(plane.y, height / 2.0)) {
 		return vec4f(sampled.xyz, 1);
