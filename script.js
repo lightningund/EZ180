@@ -202,6 +202,7 @@ video_input.onchange = async function() {
 
 	vid.src = url;
 	vid.controls = true;
+	vid.width = 500;
 
 	document.body.appendChild(vid);
 
