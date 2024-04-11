@@ -1,3 +1,10 @@
+// TODO:
+// Allow user to change the fov
+// Allow user to change canvas resolution
+// Don't accumulate canvas objects
+// Figure out a better way to save the canvas
+// Figure out a way to save an entire video
+
 // Testing for and setting up WebGPU
 if (!navigator.gpu) throw Error("WebGPU not supported");
 const adapter = await navigator.gpu.requestAdapter();
@@ -196,22 +203,12 @@ video_input.onchange = async function() {
 	vid.src = url;
 	vid.controls = true;
 
-	const targ_vid = document.createElement("canvas");
-	targ_vid.width = 600;
-	targ_vid.height = 600;
-
 	document.body.appendChild(vid);
-	document.body.appendChild(targ_vid);
-
-	console.log(vid);
-
-	const targ_ctxt = targ_vid.getContext("2d");
 
 	await vid.play();
 
 	(function render() {
 		const frame = new VideoFrame(vid);
-		targ_ctxt.drawImage(vid, 0, 0);
 		smoosh(frame);
 		frame.close();
 		vid.requestVideoFrameCallback(render);
