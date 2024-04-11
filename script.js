@@ -108,10 +108,10 @@ function smoosh(img_dat) {
 	device.queue.submit([cmd_encoder.finish()]);
 
 	// Save image
-	let image = document.createElement("a");
-	image.href = canv.toDataURL();
-	image.download = "image.png";
-	image.click();
+	// let image = document.createElement("a");
+	// image.href = canv.toDataURL();
+	// image.download = "image.png";
+	// image.click();
 }
 
 /**
@@ -186,4 +186,32 @@ document.onpaste = function(event) {
 
 	file_input.files = clipboard_data.files;
 	check_img_file(file_input);
+}
+
+video_input.onchange = async function() {
+	const url = await file_to_url(this.files[0]);
+	const vid = document.createElement("video");
+
+	vid.src = url;
+	vid.controls = true;
+
+	const targ_vid = document.createElement("canvas");
+	targ_vid.width = 600;
+	targ_vid.height = 600;
+
+	document.body.appendChild(vid);
+	document.body.appendChild(targ_vid);
+
+	console.log(vid);
+
+	const targ_ctxt = targ_vid.getContext("2d");
+
+	await vid.play();
+
+	(function render() {
+		const frame = new VideoFrame(vid);
+		targ_ctxt.drawImage(vid, 0, 0);
+		frame.close();
+		vid.requestVideoFrameCallback(render);
+	})();
 }
