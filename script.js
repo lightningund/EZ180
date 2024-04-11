@@ -48,10 +48,7 @@ const canv = document.getElementById("smooshed");
 /** @type {RenderingContext} */
 const ctxt = canv.getContext("webgpu");
 
-// Tell the canvas context about it
 ctxt.configure({ device, format });
-
-const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
 function smoosh(img_dat) {
 	const texture = device.createTexture({
@@ -122,48 +119,25 @@ function smoosh(img_dat) {
  * @param {string} url
  * @returns {Promise<ImageData>}
  */
-const url_to_data = (url) =>
-	new Promise((res, rej) => {
-		const img = document.createElement("img");
+const url_to_data = (url) => new Promise((res, rej) => {
+	const img = document.createElement("img");
 
-		img.onload = function () {
-			console.log(this.width, this.height);
-			const local_canv = document.createElement("canvas");
-			local_canv.width = this.width;
-			local_canv.height = this.height;
-			const local_ctxt = local_canv.getContext("2d");
-			local_ctxt.drawImage(img, 0, 0);
-			document.body.appendChild(local_canv);
+	img.onload = function () {
+		console.log(this.width, this.height);
+		const local_canv = document.createElement("canvas");
+		local_canv.width = this.width;
+		local_canv.height = this.height;
+		const local_ctxt = local_canv.getContext("2d");
+		local_ctxt.drawImage(img, 0, 0);
+		document.body.appendChild(local_canv);
 
-			res(local_ctxt.getImageData(0, 0, this.width, this.height));
-		}
-
-		img.src = url;
-	});
-
-/**
- * Takes an image as base64 encoded url and passes it onto the smoosh
- * @param {*} url
- */
-async function show_img_url(url) {
-	if (!quick_check_url(url)) throw Error("Invalid Image");
-
-	const img_dat = await url_to_data(url);
-	console.log(img_dat);
-
-	smoosh(img_dat);
-}
-
-function show_img_file(fileInput) {
-	let fr = new FileReader();
-
-	fr.onload = function() {
-		let dataURL = fr.result;
-		show_img_url(dataURL);
+		res(local_ctxt.getImageData(0, 0, this.width, this.height));
 	}
 
-	fr.readAsDataURL(fileInput.files[0]);
-}
+	img.src = url;
+});
+
+const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
 const file_to_url = (file) => new Promise((res, rej) => {
 	let fr = new FileReader();
