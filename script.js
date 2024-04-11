@@ -50,27 +50,14 @@ const ctxt = canv.getContext("webgpu");
 
 ctxt.configure({ device, format });
 
-async function smoosh(img_dat) {
-	// const texture = device.createTexture({
-	// 	size: [img_dat.width, img_dat.height],
-	// 	format: "rgba8unorm",
-	// 	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
-	// });
-
-	// device.queue.writeTexture(
-	// 	{ texture },
-	// 	img_dat.data,
-	// 	{ bytesPerRow: img_dat.width * 4 },
-	// 	{ width: img_dat.width, height: img_dat.height }
-	// );
-
+async function smoosh(frame) {
 	const texture = device.importExternalTexture({
-		source: new VideoFrame(await createImageBitmap(img_dat), { timestamp: 0 })
+		source: frame
 	});
 
 	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
-		(img_dat.height / img_dat.width), // Ratio
+		(frame.codedHeight / frame.codedWidth), // Ratio
 		90 * Math.PI / 180, // HFoV
 		canv.width, canv.height // Canvas width and height
 	]);
@@ -158,7 +145,17 @@ async function smoosh_file(file) {
 	const img_dat = await url_to_data(url);
 	console.log(img_dat);
 
-	smoosh(img_dat);
+	const frame = new VideoFrame(await createImageBitmap(img_dat), {
+		timestamp: 0,
+		visibleRect: {
+			width: img_dat.width,
+			height: img_dat.height
+		}
+	});
+
+	smoosh(frame);
+
+	frame.close();
 }
 
 file_input.onchange = function() { check_img_file(this); }
@@ -215,6 +212,7 @@ video_input.onchange = async function() {
 	(function render() {
 		const frame = new VideoFrame(vid);
 		targ_ctxt.drawImage(vid, 0, 0);
+		smoosh(frame);
 		frame.close();
 		vid.requestVideoFrameCallback(render);
 	})();
