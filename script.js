@@ -5,15 +5,7 @@ if (!adapter) throw Error("Couldn't request WebGPU Adapter");
 const device = await adapter.requestDevice();
 if (!device) throw Error("Couldn't request WebGPU Device");
 
-/** @type {HTMLCanvasElement} */
-const canv = document.getElementById("smooshed");
-/** @type {RenderingContext} */
-const ctxt = canv.getContext("webgpu");
-
 const format = navigator.gpu.getPreferredCanvasFormat();
-
-// Tell the canvas context about it
-ctxt.configure({ device, format });
 
 const shader_mod = device.createShaderModule({ code: shaders });
 
@@ -25,9 +17,7 @@ const pipeline_desc = {
 	fragment: {
 		module: shader_mod,
 		entryPoint: "fragment_main",
-		targets: [
-			{ format: navigator.gpu.getPreferredCanvasFormat() }
-		]
+		targets: [{ format }]
 	},
 	primitive: {
 		topology: "triangle-strip"
@@ -52,50 +42,21 @@ const bind_group = device.createBindGroup({
 	]
 });
 
+/** @type {HTMLCanvasElement} */
+const canv = document.getElementById("smooshed");
+
+/** @type {RenderingContext} */
+const ctxt = canv.getContext("webgpu");
+
+// Tell the canvas context about it
+ctxt.configure({ device, format });
+
 file_input.onchange = function() { checkImageFile(this); }
-
-function smoosh_image(img_dat) {
-
-}
 
 // The following code is inspired heavily by the input code from SauceNAO
 const quick_check_url = str => (/^((http|https|data):)/).test(str);
 
-/**
- * Takes an image as a data URL and converts it into image data
- * @param {string} url
- * @returns {Promise<ImageData>}
- */
-const url_to_data = (url) =>
-	new Promise((res, rej) => {
-		const img = document.createElement("img");
-
-		img.onload = function () {
-			console.log(this.width, this.height);
-			const local_canv = document.createElement("canvas");
-			local_canv.width = this.width;
-			local_canv.height = this.height;
-			const local_ctxt = local_canv.getContext("2d");
-			local_ctxt.drawImage(img, 0, 0);
-			document.body.appendChild(local_canv);
-
-			res(local_ctxt.getImageData(0, 0, this.width, this.height));
-		}
-
-		img.src = url;
-	});
-
-async function showImageURL(url) {
-	//console.log(url);
-
-	if (!quick_check_url(url)) throw Error("Invalid Image");
-
-	const img_dat = await url_to_data(url);
-	console.log(img_dat);
-
-	//-------------------
-	// Using actual data
-	//-------------------
+function smoosh(img_dat) {
 	const texture = device.createTexture({
 		size: [img_dat.width, img_dat.height],
 		format: "rgba8unorm",
@@ -112,7 +73,7 @@ async function showImageURL(url) {
 	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
 		(img_dat.height / img_dat.width), // Ratio
-		140 * Math.PI / 180, // HFoV
+		90 * Math.PI / 180, // HFoV
 		canv.width, canv.height // Canvas width and height
 	]);
 
@@ -151,6 +112,45 @@ async function showImageURL(url) {
 	pass_enc.end();
 
 	device.queue.submit([cmd_encoder.finish()]);
+
+	// Save image
+	let image = document.createElement("a");
+	image.href = canv.toDataURL();
+	image.download = "image.png";
+	image.click();
+}
+
+/**
+ * Takes an image as a data URL and converts it into image data
+ * @param {string} url
+ * @returns {Promise<ImageData>}
+ */
+const url_to_data = (url) =>
+	new Promise((res, rej) => {
+		const img = document.createElement("img");
+
+		img.onload = function () {
+			console.log(this.width, this.height);
+			const local_canv = document.createElement("canvas");
+			local_canv.width = this.width;
+			local_canv.height = this.height;
+			const local_ctxt = local_canv.getContext("2d");
+			local_ctxt.drawImage(img, 0, 0);
+			document.body.appendChild(local_canv);
+
+			res(local_ctxt.getImageData(0, 0, this.width, this.height));
+		}
+
+		img.src = url;
+	});
+
+async function showImageURL(url) {
+	if (!quick_check_url(url)) throw Error("Invalid Image");
+
+	const img_dat = await url_to_data(url);
+	console.log(img_dat);
+
+	smoosh(img_dat);
 }
 
 function showImageFile(fileInput) {
