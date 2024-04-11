@@ -22,19 +22,13 @@ const hfov: f32 = 140.0 * PI / 180.0;
 // +Y is from the camera directly up
 // +X is from the camera directly right
 
-struct VertexOut {
-	@builtin(position) position : vec4f
-}
-
 @vertex
-fn vertex_main(@location(0) position: vec4f) -> VertexOut {
-	var output : VertexOut;
-	output.position = position;
-	return output;
+fn vertex_main(@location(0) position: vec4f) -> @builtin(position) vec4f {
+	return position;
 }
 
 fn within(val: f32, lim: f32) -> bool {
-return val < lim && val > -lim;
+	return val < lim && val > -lim;
 }
 
 fn map(value: f32, min1: f32, max1: f32, min2: f32, max2: f32) -> f32 {
@@ -42,15 +36,16 @@ fn map(value: f32, min1: f32, max1: f32, min2: f32, max2: f32) -> f32 {
 }
 
 fn ll_to_cart(lon: f32, lat: f32) -> vec3f {
-var x = cos(lat) * cos(lon);
-var y = cos(lat) * sin(lon);
-var z = sin(lat);
-return vec3f(y, z, x);
+	var x = cos(lat) * cos(lon);
+	var y = cos(lat) * sin(lon);
+	var z = sin(lat);
+	return vec3f(y, z, x);
 }
+
 @fragment
-fn fragment_main(frag_data: VertexOut) -> @location(0) vec4f {
+fn fragment_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 	// Normalized pixel coordinates (from 0 to 1)
-	var uv = frag_data.position.xy / settings.canv;
+	var uv = position.xy / settings.canv;
 
 	var width = 2.0 * sin(settings.hfov / 2.0);
 	var height = width * settings.ratio;
