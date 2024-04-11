@@ -1,5 +1,3 @@
-const shaders = document.getElementById("shaders").textContent;
-
 const canv = document.getElementById("smooshed");
 const ctxt = canv.getContext("webgpu");
 
