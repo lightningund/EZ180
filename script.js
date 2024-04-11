@@ -10,17 +10,49 @@ const canv = document.getElementById("smooshed");
 /** @type {RenderingContext} */
 const ctxt = canv.getContext("webgpu");
 
+const format = navigator.gpu.getPreferredCanvasFormat();
+
 // Tell the canvas context about it
-ctxt.configure({
-	device: device,
-	format: navigator.gpu.getPreferredCanvasFormat(),
-	alphaMode: "premultiplied"
+ctxt.configure({ device, format });
+
+const shader_mod = device.createShaderModule({ code: shaders });
+
+const pipeline_desc = {
+	vertex: {
+		module: shader_mod,
+		entryPoint: "vertex_main"
+	},
+	fragment: {
+		module: shader_mod,
+		entryPoint: "fragment_main",
+		targets: [
+			{ format: navigator.gpu.getPreferredCanvasFormat() }
+		]
+	},
+	primitive: {
+		topology: "triangle-strip"
+	},
+	layout: "auto"
+};
+
+const render_pipeline = device.createRenderPipeline(pipeline_desc);
+
+const sampler = device.createSampler();
+
+const uniform_buffer = device.createBuffer({
+	size: 4 * (1 + 1 + 2),
+	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+
+const bind_group = device.createBindGroup({
+	layout: render_pipeline.getBindGroupLayout(0),
+	entries: [
+		{ binding: 0, resource: sampler },
+		{ binding: 1, resource: { buffer: uniform_buffer } }
+	]
 });
 
 file_input.onchange = function() { checkImageFile(this); }
-
-let render_pipeline;
-let cmd_encoder;
 
 function smoosh_image(img_dat) {
 
@@ -61,88 +93,6 @@ async function showImageURL(url) {
 	const img_dat = await url_to_data(url);
 	console.log(img_dat);
 
-	//---------------
-	// Shader setup
-	//---------------
-	const shader_mod = device.createShaderModule({ code: shaders });
-
-	const verts = new Float32Array([
-		1, -1, 0, 1,
-		-1, -1, 0, 1,
-		1, 1, 0, 1,
-		-1, 1, 0, 1,
-	]);
-
-	const vertex_buffer = device.createBuffer({
-		size: verts.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-	});
-
-	device.queue.writeBuffer(vertex_buffer, 0, verts);
-
-	const vertex_buffers = [
-		{
-			attributes: [
-				{
-					shaderLocation: 0, // position
-					offset: 0,
-					format: "float32x4"
-				}
-			],
-			arrayStride: 16,
-			stepMode: "vertex"
-		}
-	];
-
-	const pipeline_desc = {
-		vertex: {
-			module: shader_mod,
-			entryPoint: "vertex_main",
-			buffers: vertex_buffers
-		},
-		fragment: {
-			module: shader_mod,
-			entryPoint: "fragment_main",
-			targets: [
-				{ format: navigator.gpu.getPreferredCanvasFormat() }
-			]
-		},
-		primitive: {
-			topology: "triangle-strip"
-		},
-		layout: "auto"
-	};
-
-	render_pipeline = device.createRenderPipeline(pipeline_desc);
-
-	cmd_encoder = device.createCommandEncoder();
-
-	const render_pass_desc = {
-		colorAttachments: [
-			{
-				clearValue: { r: 0, g: 0.5, b: 1, a: 1 },
-				loadOp: "clear",
-				storeOp: "store",
-				view: ctxt.getCurrentTexture().createView()
-			}
-		]
-	};
-
-	const sampler = device.createSampler();
-
-	const uniform_buffer = device.createBuffer({
-		size: 4 * (1 + 1 + 2),
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
-
-	const bind_group = device.createBindGroup({
-		layout: render_pipeline.getBindGroupLayout(0),
-		entries: [
-			{ binding: 0, resource: sampler },
-			{ binding: 1, resource: { buffer: uniform_buffer } }
-		]
-	});
-
 	//-------------------
 	// Using actual data
 	//-------------------
@@ -176,12 +126,23 @@ async function showImageURL(url) {
 	//---------
 	// Drawing
 	//---------
-	let pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
+	const render_pass_desc = {
+		colorAttachments: [
+			{
+				clearValue: { r: 0, g: 0.5, b: 1, a: 1 },
+				loadOp: "clear",
+				storeOp: "store",
+				view: ctxt.getCurrentTexture().createView()
+			}
+		]
+	};
+
+	const cmd_encoder = device.createCommandEncoder();
+	const pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
 
 	pass_enc.setPipeline(render_pipeline);
 	pass_enc.setBindGroup(0, bind_group);
 	pass_enc.setBindGroup(1, bind_group2);
-	pass_enc.setVertexBuffer(0, vertex_buffer);
 
 	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
 

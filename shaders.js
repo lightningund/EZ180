@@ -19,13 +19,15 @@ const RATIO: f32 = 564.0 / 1024.0;
 
 const hfov: f32 = 140.0 * PI / 180.0;
 
+const quad_verts = array(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
+
 // +Z is from the camera to the image plane
 // +Y is from the camera directly up
 // +X is from the camera directly right
 
 @vertex
-fn vertex_main(@location(0) position: vec4f) -> @builtin(position) vec4f {
-	return position;
+fn vertex_main(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+	return vec4f(quad_verts[i], 0, 1);
 }
 
 fn within(val: f32, lim: f32) -> bool {
