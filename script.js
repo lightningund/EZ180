@@ -5,6 +5,9 @@ const ctxt = canv.getContext("webgpu");
 
 let adapter;
 let device;
+let render_pipeline;
+let cmd_encoder;
+let pass_enc;
 
 async function initGPU() {
 	if (!navigator.gpu) throw Error("WebGPU not supported");
@@ -15,19 +18,53 @@ async function initGPU() {
 	device = await adapter.requestDevice();
 	if (!device) throw Error("Couldn't request WebGPU Device");
 
-	const shader_mod = device.createShaderModule({ code: shaders });
-
 	ctxt.configure({
 		device: device,
 		format: navigator.gpu.getPreferredCanvasFormat(),
 		alphaMode: "premultiplied"
 	});
+}
+
+initGPU();
+
+// The following code is inspired heavily by the input code from SauceNAO
+const quick_check_url = str => (/^((http|https|data):)/).test(str);
+
+function url_to_data(url) {
+	return new Promise((res, rej) => {
+		const img = document.createElement("img");
+
+		img.onload = function () {
+			console.log(this.width, this.height);
+			const canv = document.createElement("canvas");
+			canv.width = this.width;
+			canv.height = this.height;
+			const local_ctxt = canv.getContext("2d");
+			local_ctxt.drawImage(img, 0, 0);
+			document.body.appendChild(canv);
+
+			res(local_ctxt.getImageData(0, 0, this.width, this.height));
+		}
+
+		img.src = url;
+	});
+}
+
+async function showImageURL(url) {
+	//console.log(url);
+
+	if (!quick_check_url(url)) throw Error("Invalid Image");
+
+	const img_dat = await url_to_data(url);
+	console.log(img_dat);
+
+	const shader_mod = device.createShaderModule({ code: shaders });
 
 	const verts = new Float32Array([
-		0, 0, 0, 0,
-		0, 1, 0, 0,
-		1, 1, 0, 0,
-		1, 0, 0, 0
+		1, -1, 0, 1,
+		-1, -1, 0, 1,
+		1, 1, 0, 1,
+		-1, 1, 0, 1,
 	]);
 
 	const vertex_buffer = device.createBuffer({
@@ -64,13 +101,15 @@ async function initGPU() {
 				{ format: navigator.gpu.getPreferredCanvasFormat() }
 			]
 		},
-		primitive: { topology: "triangle-strip" },
+		primitive: {
+			topology: "triangle-strip"
+		},
 		layout: "auto"
 	};
 
-	const render_pipeline = device.createRenderPipeline(pipeline_desc);
+	render_pipeline = device.createRenderPipeline(pipeline_desc);
 
-	const cmd_encoder = device.createCommandEncoder();
+	cmd_encoder = device.createCommandEncoder();
 
 	const render_pass_desc = {
 		colorAttachments: [
@@ -83,53 +122,9 @@ async function initGPU() {
 		]
 	};
 
-	const pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
-
-	pass_enc.setPipeline(render_pipeline);
-	pass_enc.setVertexBuffer(0, vertex_buffer);
-	pass_enc.draw(3);
-
-	pass_enc.end();
-
-	device.queue.submit([cmd_encoder.finish()]);
-}
-
-initGPU();
-
-// The following code is inspired heavily by the input code from SauceNAO
-const quick_check_url = str => (/^((http|https|data):)/).test(str);
-
-function url_to_data(url) {
-	return new Promise((res, rej) => {
-		const img = document.createElement("img");
-
-		img.onload = function () {
-			console.log(this.width, this.height);
-			const canv = document.createElement("canvas");
-			canv.width = this.width;
-			canv.height = this.height;
-			const local_ctxt = canv.getContext("2d");
-			local_ctxt.drawImage(img, 0, 0);
-			document.body.appendChild(canv);
-
-			res(local_ctxt.getImageData(0, 0, this.width, this.height));
-		}
-
-		img.src = url;
-	});
-}
-
-async function showImageURL(url) {
-	//console.log(url);
-
-	if (!quick_check_url(url)) throw Error("Invalid Image");
-
-	const img_dat = await url_to_data(url);
-	console.log(img_dat);
-
 	const texture = device.createTexture({
 		size: [img_dat.width, img_dat.height],
-		format: navigator.gpu.getPreferredCanvasFormat(),
+		format: "rgba8unorm",
 		usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
 	});
 
@@ -139,6 +134,27 @@ async function showImageURL(url) {
 		{ bytesPerRow: img_dat.width * 4 },
 		{ width: img_dat.width, height: img_dat.height }
 	);
+
+	const sampler = device.createSampler();
+
+	const bind_group = device.createBindGroup({
+		layout: render_pipeline.getBindGroupLayout(0),
+		entries: [
+			{ binding: 0, resource: sampler },
+			{ binding: 1, resource: texture.createView() }
+		]
+	});
+
+	pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
+
+	pass_enc.setPipeline(render_pipeline);
+	pass_enc.setBindGroup(0, bind_group);
+	pass_enc.setVertexBuffer(0, vertex_buffer);
+	pass_enc.draw(4);
+
+	pass_enc.end();
+
+	device.queue.submit([cmd_encoder.finish()]);
 }
 
 function showImageFile(fileInput) {
