@@ -6,6 +6,7 @@
 // Figure out a way to save an entire video
 
 const W_LIM = 500;
+const H_FOV = 81;
 
 // Testing for and setting up WebGPU
 if (!navigator.gpu) throw Error("WebGPU not supported");
@@ -54,6 +55,8 @@ const bind_group = device.createBindGroup({
 /** @type {HTMLCanvasElement} */
 const canv = document.getElementById("smooshed");
 
+canv.style.width = W_LIM;
+
 /** @type {RenderingContext} */
 const ctxt = canv.getContext("webgpu");
 
@@ -67,7 +70,7 @@ async function smoosh(frame) {
 	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
 		(frame.codedHeight / frame.codedWidth), // Ratio
-		90 * Math.PI / 180, // HFoV
+		H_FOV * Math.PI / 180, // HFoV
 		canv.width, canv.height // Canvas width and height
 	]);
 
@@ -106,12 +109,6 @@ async function smoosh(frame) {
 	pass_enc.end();
 
 	device.queue.submit([cmd_encoder.finish()]);
-
-	// Save image
-	// let image = document.createElement("a");
-	// image.href = canv.toDataURL();
-	// image.download = "image.png";
-	// image.click();
 }
 
 /**
@@ -163,9 +160,15 @@ async function smoosh_img_file(file) {
 		}
 	});
 
-	smoosh(frame);
+	await smoosh(frame);
 
 	frame.close();
+
+	// Save image
+	let link = document.createElement("a");
+	link.href = canv.toDataURL();
+	link.download = "image.png";
+	link.click();
 }
 
 async function smoosh_vid_file(file) {
@@ -178,7 +181,29 @@ async function smoosh_vid_file(file) {
 
 	document.body.appendChild(vid);
 
+	const stream = canv.captureStream();
+	const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+	const chunks = [];
+
+	recorder.ondataavailable = function (evt) {
+		chunks.push(URL.createObjectURL(evt.data));
+	}
+
+	recorder.onstop = function () {
+		let link = document.createElement("a");
+		link.href = chunks.join("");
+		console.log(link.href);
+		link.download = "video.webm";
+		link.click();
+	}
+
+	vid.addEventListener("ended", function() {
+		recorder.stop();
+	});
+
 	await vid.play();
+
+	recorder.start();
 
 	(function render() {
 		const frame = new VideoFrame(vid);
