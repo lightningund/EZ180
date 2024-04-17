@@ -66,16 +66,17 @@ const ctxt = canv.getContext("webgpu");
 ctxt.configure({ device, format });
 
 async function smoosh(frame) {
-	const texture = device.importExternalTexture({
-		source: frame
-	});
-
-	// Figure out a way to adjust HFoV outside the code
 	const uniform_vals = new Float32Array([
 		(frame.codedHeight / frame.codedWidth), // Ratio
 		H_FOV * Math.PI / 180, // HFoV
 		canv.width, canv.height // Canvas width and height
 	]);
+
+	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
+
+	const texture = device.importExternalTexture({
+		source: frame
+	});
 
 	const bind_group2 = device.createBindGroup({
 		layout: render_pipeline.getBindGroupLayout(1),
@@ -84,9 +85,6 @@ async function smoosh(frame) {
 		]
 	});
 
-	//---------
-	// Drawing
-	//---------
 	const render_pass_desc = {
 		colorAttachments: [
 			{
@@ -98,14 +96,15 @@ async function smoosh(frame) {
 		]
 	};
 
+	//---------
+	// Drawing
+	//---------
 	const cmd_encoder = device.createCommandEncoder();
 	const pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
 
 	pass_enc.setPipeline(render_pipeline);
 	pass_enc.setBindGroup(0, bind_group);
 	pass_enc.setBindGroup(1, bind_group2);
-
-	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
 
 	pass_enc.draw(4);
 

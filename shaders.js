@@ -1,7 +1,5 @@
 const shaders = `
-const PI: f32 = 3.14159265358;
-
-fn radians(x: f32) -> f32 { return x * PI / 180.0; }
+const PI = radians(180.0);
 
 struct Settings {
 	ratio: f32,
@@ -14,10 +12,6 @@ struct Settings {
 
 // The texture is in a different group because the other two can be bound ahead of time
 @group(1) @binding(0) var tex: texture_external;
-
-const RATIO: f32 = 564.0 / 1024.0;
-
-const hfov: f32 = 140.0 * PI / 180.0;
 
 const quad_verts = array(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
 
@@ -55,8 +49,8 @@ fn fragment_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 
 	var h = width / tan(settings.hfov / 2.0) / 2.0;
 
-	var lat = map(uv.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
 	var lon = map(uv.x, 0.0, 1.0, -PI / 2.0, PI / 2.0);
+	var lat = map(uv.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
 
 	var world = ll_to_cart(lon, lat);
 	var plane = world.xy / world.z * h;
