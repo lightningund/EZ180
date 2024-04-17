@@ -3,7 +3,10 @@
 // Allow user to change canvas resolution
 // Don't accumulate canvas objects
 // Figure out a better way to save the canvas
-// Figure out a way to save an entire video
+// Mute and hide video controls
+// Add manual progress bar to show video progress
+// Try to make the video processing happen faster than 1x?
+// X Figure out a way to save an entire video
 
 const W_LIM = 500;
 const H_FOV = 81;
