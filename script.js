@@ -146,23 +146,6 @@ const file_to_url = (file) => new Promise((res, rej) => {
 	fr.readAsDataURL(file);
 });
 
-// /**
-//  *
-//  * @param {ImageBitmapSource} img_dat
-//  * @returns
-//  */
-// const data_to_video_frame = (img_dat) => new Promise((res, rej) => {
-// 	createImageBitmap(img_dat).then(bmp => {
-// 		res(new VideoFrame(bmp, {
-// 			timestamp: 0,
-// 			visibleRect: {
-// 				width: img_dat.width,
-// 				height: img_dat.height
-// 			}
-// 		}));
-// 	})
-// });
-
 /**
  * Takes an image file as a blob and smooshes it and writes it to the main canvas
  * @param {Blob} file
