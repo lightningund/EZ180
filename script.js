@@ -106,33 +106,6 @@ async function smoosh(frame) {
 	device.queue.submit([cmd_encoder.finish()]);
 }
 
-// /**
-//  * Takes an image as a data URL and converts it into image data
-//  * @param {string} url
-//  * @returns {Promise<ImageData>}
-//  */
-// const url_to_data = (url) => new Promise((res, rej) => {
-// 	const img = document.createElement("img");
-
-// 	img.onload = function () {
-// 		console.log(this.width, this.height);
-// 		const local_canv = document.createElement("canvas");
-// 		local_canv.width = this.width;
-// 		local_canv.height = this.height;
-// 		local_canv.style.width = W_LIM;
-// 		const local_ctxt = local_canv.getContext("2d");
-// 		local_ctxt.drawImage(img, 0, 0);
-// 		document.body.appendChild(local_canv);
-
-// 		res(local_ctxt.getImageData(0, 0, this.width, this.height));
-// 	}
-
-// 	img.src = url;
-// });
-
-// // Just quickly checks to see if a string is probably valid
-// const quick_check_url = str => (/^((http|https|data):)/).test(str);
-
 /**
  * Takes a file as a blob, reads it, and turns it into a data URL
  * @param {Blob} file
