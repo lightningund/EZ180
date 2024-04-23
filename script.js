@@ -199,7 +199,7 @@ async function smoosh_vid_file(file) {
 	// vid.controls = true;
 	vid.style.width = W_LIM;
 
-	document.body.appendChild(vid);
+	// document.body.appendChild(vid);
 
 	const stream = canv.captureStream();
 	const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
