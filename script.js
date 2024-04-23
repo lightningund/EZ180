@@ -8,8 +8,8 @@
 // Try to make the video processing happen faster than 1x?
 // X Figure out a way to save an entire video
 
-const W_LIM = 500;
-const H_FOV = 81;
+let W_LIM = 500;
+let H_FOV = 81;
 
 // Testing for and setting up WebGPU
 if (!navigator.gpu) throw Error("WebGPU not supported");
@@ -236,4 +236,14 @@ document.onpaste = function(event) {
 
 	file_input.files = clipboard_data.files;
 	check_file(file_input);
+}
+
+fov_change.onclick = function(event) {
+	H_FOV = prompt("Enter Horizontal FoV of the camera:");
+}
+
+res_change.onclick = function(event) {
+	const res = prompt("Enter Desired Resolution:");
+	smooshed.width = res;
+	smooshed.height = res;
 }
