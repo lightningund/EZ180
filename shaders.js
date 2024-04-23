@@ -32,31 +32,31 @@ fn map(value: f32, min1: f32, max1: f32, min2: f32, max2: f32) -> f32 {
 }
 
 fn ll_to_cart(lon: f32, lat: f32) -> vec3f {
-	var x = cos(lat) * cos(lon);
-	var y = cos(lat) * sin(lon);
-	var z = sin(lat);
+	let x = cos(lat) * cos(lon);
+	let y = cos(lat) * sin(lon);
+	let z = sin(lat);
 	return vec3f(y, z, x);
 }
 
 @fragment
 fn fragment_main(@builtin(position) position: vec4f) -> @location(0) vec4f {
 	// Normalized pixel coordinates (from 0 to 1)
-	var uv = position.xy / settings.canv;
+	let uv = position.xy / settings.canv;
 
-	var width = 2.0 * sin(settings.hfov / 2.0);
-	var height = width * settings.ratio;
+	let width = 2.0 * sin(settings.hfov / 2.0);
+	let height = width * settings.ratio;
 
-	var h = width / tan(settings.hfov / 2.0) / 2.0;
+	let h = width / tan(settings.hfov / 2.0) / 2.0;
 
-	var lon = map(uv.x, 0.0, 1.0, -PI / 2.0, PI / 2.0);
-	var lat = map(uv.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
+	let lon = map(uv.x, 0.0, 1.0, -PI / 2.0, PI / 2.0);
+	let lat = map(uv.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
 
-	var world = ll_to_cart(lon, lat);
-	var plane = world.xy / world.z * h;
+	let world = ll_to_cart(lon, lat);
+	let plane = world.xy / world.z * h;
 
-	var x = map(plane.x, -width / 2.0, width / 2.0, 0.0, 1.0);
-	var y = map(plane.y, -height / 2.0, height / 2.0, 0.0, 1.0);
-	var sampled = textureSampleBaseClampToEdge(tex, our_sampler, vec2f(x, y));
+	let x = map(plane.x, -width / 2.0, width / 2.0, 0.0, 1.0);
+	let y = map(plane.y, -height / 2.0, height / 2.0, 0.0, 1.0);
+	let sampled = textureSampleBaseClampToEdge(tex, our_sampler, vec2f(x, y));
 
 	if (within(plane.x, width / 2.0) && within(plane.y, height / 2.0)) {
 		return vec4f(sampled.xyz, 1);
