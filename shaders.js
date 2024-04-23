@@ -9,9 +9,8 @@ struct Settings {
 
 @group(0) @binding(0) var our_sampler: sampler;
 @group(0) @binding(1) var<uniform> settings: Settings;
-
+@group(0) @binding(2) var tex: texture_external;
 // The texture is in a different group because the other two can be bound ahead of time
-@group(1) @binding(0) var tex: texture_external;
 
 const quad_verts = array(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
 

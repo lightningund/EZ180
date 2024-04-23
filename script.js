@@ -1,12 +1,12 @@
 // TODO:
-// Allow user to change the fov
-// Allow user to change canvas resolution
+// X Allow user to change the fov
+// X Allow user to change canvas resolution
+// X Mute and hide video controls
+// X Figure out a way to save an entire video
 // Don't accumulate canvas objects
 // Figure out a better way to save the canvas
-// Mute and hide video controls
 // Add manual progress bar to show video progress
 // Try to make the video processing happen faster than 1x?
-// X Figure out a way to save an entire video
 
 let W_LIM = 500;
 let H_FOV = 81;
@@ -22,7 +22,7 @@ const format = navigator.gpu.getPreferredCanvasFormat();
 
 const shader_mod = device.createShaderModule({ code: shaders });
 
-const pipeline_desc = {
+const pipeline = device.createRenderPipeline({
 	vertex: {
 		module: shader_mod,
 		entryPoint: "vertex_main"
@@ -36,23 +36,13 @@ const pipeline_desc = {
 		topology: "triangle-strip"
 	},
 	layout: "auto"
-};
-
-const render_pipeline = device.createRenderPipeline(pipeline_desc);
+});
 
 const sampler = device.createSampler();
 
 const uniform_buffer = device.createBuffer({
 	size: 4 * (1 + 1 + 2),
 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-});
-
-const bind_group = device.createBindGroup({
-	layout: render_pipeline.getBindGroupLayout(0),
-	entries: [
-		{ binding: 0, resource: sampler },
-		{ binding: 1, resource: { buffer: uniform_buffer } }
-	]
 });
 
 /** @type {HTMLCanvasElement} */
@@ -65,6 +55,10 @@ const ctxt = canv.getContext("webgpu");
 
 ctxt.configure({ device, format });
 
+/**
+ *
+ * @param {VideoFrame} frame
+ */
 async function smoosh(frame) {
 	const uniform_vals = new Float32Array([
 		(frame.codedHeight / frame.codedWidth), // Ratio
@@ -74,14 +68,14 @@ async function smoosh(frame) {
 
 	device.queue.writeBuffer(uniform_buffer, 0, uniform_vals);
 
-	const texture = device.importExternalTexture({
-		source: frame
-	});
+	const texture = device.importExternalTexture({ source: frame });
 
-	const bind_group2 = device.createBindGroup({
-		layout: render_pipeline.getBindGroupLayout(1),
+	const bind_group = device.createBindGroup({
+		layout: pipeline.getBindGroupLayout(0),
 		entries: [
-			{ binding: 0, resource: texture },
+			{ binding: 0, resource: sampler },
+			{ binding: 1, resource: { buffer: uniform_buffer } },
+			{ binding: 2, resource: texture }
 		]
 	});
 
@@ -102,9 +96,8 @@ async function smoosh(frame) {
 	const cmd_encoder = device.createCommandEncoder();
 	const pass_enc = cmd_encoder.beginRenderPass(render_pass_desc);
 
-	pass_enc.setPipeline(render_pipeline);
+	pass_enc.setPipeline(pipeline);
 	pass_enc.setBindGroup(0, bind_group);
-	pass_enc.setBindGroup(1, bind_group2);
 
 	pass_enc.draw(4);
 
@@ -113,32 +106,38 @@ async function smoosh(frame) {
 	device.queue.submit([cmd_encoder.finish()]);
 }
 
+// /**
+//  * Takes an image as a data URL and converts it into image data
+//  * @param {string} url
+//  * @returns {Promise<ImageData>}
+//  */
+// const url_to_data = (url) => new Promise((res, rej) => {
+// 	const img = document.createElement("img");
+
+// 	img.onload = function () {
+// 		console.log(this.width, this.height);
+// 		const local_canv = document.createElement("canvas");
+// 		local_canv.width = this.width;
+// 		local_canv.height = this.height;
+// 		local_canv.style.width = W_LIM;
+// 		const local_ctxt = local_canv.getContext("2d");
+// 		local_ctxt.drawImage(img, 0, 0);
+// 		document.body.appendChild(local_canv);
+
+// 		res(local_ctxt.getImageData(0, 0, this.width, this.height));
+// 	}
+
+// 	img.src = url;
+// });
+
+// // Just quickly checks to see if a string is probably valid
+// const quick_check_url = str => (/^((http|https|data):)/).test(str);
+
 /**
- * Takes an image as a data URL and converts it into image data
- * @param {string} url
- * @returns {Promise<ImageData>}
+ * Takes a file as a blob, reads it, and turns it into a data URL
+ * @param {Blob} file
+ * @returns {Promise<ArrayBuffer>}
  */
-const url_to_data = (url) => new Promise((res, rej) => {
-	const img = document.createElement("img");
-
-	img.onload = function () {
-		console.log(this.width, this.height);
-		const local_canv = document.createElement("canvas");
-		local_canv.width = this.width;
-		local_canv.height = this.height;
-		local_canv.style.width = W_LIM;
-		const local_ctxt = local_canv.getContext("2d");
-		local_ctxt.drawImage(img, 0, 0);
-		document.body.appendChild(local_canv);
-
-		res(local_ctxt.getImageData(0, 0, this.width, this.height));
-	}
-
-	img.src = url;
-});
-
-const quick_check_url = str => (/^((http|https|data):)/).test(str);
-
 const file_to_url = (file) => new Promise((res, rej) => {
 	let fr = new FileReader();
 
@@ -147,24 +146,42 @@ const file_to_url = (file) => new Promise((res, rej) => {
 	fr.readAsDataURL(file);
 });
 
+// /**
+//  *
+//  * @param {ImageBitmapSource} img_dat
+//  * @returns
+//  */
+// const data_to_video_frame = (img_dat) => new Promise((res, rej) => {
+// 	createImageBitmap(img_dat).then(bmp => {
+// 		res(new VideoFrame(bmp, {
+// 			timestamp: 0,
+// 			visibleRect: {
+// 				width: img_dat.width,
+// 				height: img_dat.height
+// 			}
+// 		}));
+// 	})
+// });
+
+/**
+ * Takes an image file as a blob and smooshes it and writes it to the main canvas
+ * @param {Blob} file
+ */
 async function smoosh_img_file(file) {
-	const url = await file_to_url(file);
-	if (!quick_check_url(url)) throw Error("Invalid Image");
+	const bmp = await createImageBitmap(file);
 
-	const img_dat = await url_to_data(url);
-	console.log(img_dat);
-
-	const frame = new VideoFrame(await createImageBitmap(img_dat), {
+	const frame = new VideoFrame(bmp, {
 		timestamp: 0,
 		visibleRect: {
-			width: img_dat.width,
-			height: img_dat.height
+			width: bmp.width,
+			height: bmp.height
 		}
 	});
 
 	await smoosh(frame);
 
 	frame.close();
+	bmp.close();
 
 	// Save image
 	let link = document.createElement("a");
@@ -178,7 +195,8 @@ async function smoosh_vid_file(file) {
 	const vid = document.createElement("video");
 
 	vid.src = url;
-	vid.controls = true;
+	vid.mute = true;
+	// vid.controls = true;
 	vid.style.width = W_LIM;
 
 	document.body.appendChild(vid);
