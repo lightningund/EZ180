@@ -189,7 +189,10 @@ async function smoosh_vid_file(file) {
 	})();
 }
 
-file_input.onchange = function() { check_file(this); }
+// Just a little alias to make it a bit cleaner
+const get_elem = document.getElementById;
+
+get_elem("file_input").onchange = function() { check_file(this); }
 
 function check_file(file_input_elem) {
 	const filename = file_input_elem.value.trim().toLowerCase();
@@ -208,16 +211,16 @@ document.onpaste = function(event) {
 	let clipboard_data = (event.clipboardData || event.originalEvent.clipboardData);
 	if (clipboard_data.files[0] == undefined) return;
 
-	file_input.files = clipboard_data.files;
-	check_file(file_input);
+	get_elem("file_input").files = clipboard_data.files;
+	check_file(get_elem("file_input"));
 }
 
-fov_change.onclick = function(event) {
+get_elem("fov_change").onclick = function(event) {
 	H_FOV = prompt("Enter Horizontal FoV of the camera:");
 }
 
-res_change.onclick = function(event) {
+get_elem("res_change").onclick = function(event) {
 	const res = prompt("Enter Desired Resolution:");
-	smooshed.width = res;
-	smooshed.height = res;
+	get_elem("smooshed").width = res;
+	get_elem("smooshed").height = res;
 }
