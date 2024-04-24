@@ -126,13 +126,7 @@ const file_to_url = (file) => new Promise((res, rej) => {
 async function smoosh_img_file(file) {
 	const bmp = await createImageBitmap(file);
 
-	const frame = new VideoFrame(bmp, {
-		timestamp: 0,
-		visibleRect: {
-			width: bmp.width,
-			height: bmp.height
-		}
-	});
+	const frame = new VideoFrame(bmp, { timestamp: 0 });
 
 	await smoosh(frame);
 
@@ -206,6 +200,9 @@ function check_file(file_input_elem) {
 document.onpaste = function(event) {
 	event.preventDefault();
 	let clipboard_data = (event.clipboardData || event.originalEvent.clipboardData);
+
+	console.log(clipboard_data);
+
 	if (clipboard_data.files[0] == undefined) return;
 
 	document.getElementById("file_input").files = clipboard_data.files;
